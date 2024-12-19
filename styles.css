@@ -24,7 +24,7 @@ h1 {
     border: 1px solid #ccc;
 }
 
-#sentence-display {
+#word-display {
     font-size: 1.2em;
     margin-bottom: 20px;
     text-align: left;
@@ -33,12 +33,16 @@ h1 {
     background-color: #f9f9f9;
 }
 
-#sentence-display .correct {
+#word-display .correct-word {
     color: green;
 }
 
-#sentence-display .incorrect {
+#word-display .incorrect-word {
     color: red;
+}
+
+#word-display .current-word {
+    background-color: lightyellow;
 }
 
 #test-area {
@@ -69,3 +73,4 @@ h1 {
     font-size: 1.1em;
     color: #555;
 }
+

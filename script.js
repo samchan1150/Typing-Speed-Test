@@ -14,32 +14,38 @@ let timer = [0, 0]; // [minutes, seconds]
 let interval;
 let timerRunning = false;
 let totalErrors = 0;
-let errors = 0;
 let characterTyped = 0;
 let currentWords = [];
 let totalWords = 20; // number of words in the test
+let wordIndex = 0; // index of the current word
+let correctWords = 0;
 
 // Function to fetch and display random words from the API
 async function generateWords() {
     try {
         wordDisplay.textContent = '';
+        testArea.value = '';
         currentWords = [];
-
+        wordIndex = 0;
+        correctWords = 0;
+        totalErrors = 0;
+        characterTyped = 0;
+        
         // Fetch random words from the API
         const response = await fetch(`https://random-word-api.vercel.app/api?words=${totalWords}`);
         const data = await response.json();
 
         currentWords = data;
 
-        // Combine words into a string
-        const wordsString = currentWords.join(' ');
-
-        // Split wordsString into characters and create span elements
-        wordsString.split('').forEach(char => {
-            const charSpan = document.createElement('span');
-            charSpan.innerText = char;
-            wordDisplay.appendChild(charSpan);
+        // Display words with each word wrapped in a span
+        currentWords.forEach(word => {
+            const wordSpan = document.createElement('span');
+            wordSpan.innerText = word + ' '; // Add a space for separation
+            wordDisplay.appendChild(wordSpan);
         });
+
+        // Highlight the first word
+        wordDisplay.childNodes[0].classList.add('current-word');
     } catch (error) {
         console.error('Error fetching words:', error);
         wordDisplay.innerText = 'Failed to load words. Please check your internet connection and try again.';
@@ -48,7 +54,7 @@ async function generateWords() {
 
 // Function to start the timer
 function startTimer() {
-    if (timerRunning === false && testArea.value.length > 0) {
+    if (timerRunning === false) {
         timerRunning = true;
         interval = setInterval(runTimer, 1000);
     }
@@ -68,40 +74,67 @@ function runTimer() {
     timerElement.innerText = `${minutes}:${seconds}`;
 }
 
-// Function to spell check the text entered
-function spellCheck() {
-    const textEntered = testArea.value;
-    characterTyped = textEntered.length;
+// Function to handle input
+function processInput(event) {
+    // Start the timer on the first keypress
+    startTimer();
 
-    errors = 0;
+    // Total characters typed
+    characterTyped++;
 
-    let wordChars = wordDisplay.querySelectorAll('span');
-    let textEnteredArray = textEntered.split('');
+    // Get the current word and user input
+    const input = testArea.value.trim();
+    const inputWords = input.split(' ');
 
-    // Loop through each character and compare
-    wordChars.forEach((char, index) => {
-        let typedChar = textEnteredArray[index];
-
-        if (typedChar == null) {
-            char.classList.remove('correct', 'incorrect');
-        } else if (typedChar === char.innerText) {
-            char.classList.add('correct');
-            char.classList.remove('incorrect');
-        } else {
-            char.classList.add('incorrect');
-            char.classList.remove('correct');
-            errors++;
+    // Check if the last character is a space or if the user pressed Enter
+    if (event.inputType === 'insertText' && (event.data === ' ' || event.data === null)) {
+        // User pressed space or Enter, check the word
+        checkWord(inputWords[inputWords.length - 1]);
+    } else if (event.inputType === 'deleteContentBackward') {
+        // Handle backspace
+        if (testArea.value.slice(-1) === ' ') {
+            // User deleted a space, move back to previous word
+            if (wordIndex > 0) {
+                wordIndex--;
+                wordDisplay.childNodes[wordIndex].classList.remove('incorrect-word', 'correct-word');
+                wordDisplay.childNodes[wordIndex].classList.add('current-word');
+                wordDisplay.childNodes[wordIndex + 1].classList.remove('current-word');
+            }
         }
-    });
+    }
+}
 
-    // Update error count
-    totalErrors = errors;
+// Function to check the typed word
+function checkWord(typedWord) {
+    const currentWordSpan = wordDisplay.childNodes[wordIndex];
+    const currentWord = currentWords[wordIndex];
 
-    // If text is complete
-    if (textEntered.length === wordDisplay.textContent.length) {
+    // Remove current-word highlight
+    currentWordSpan.classList.remove('current-word');
+
+    if (typedWord === currentWord) {
+        currentWordSpan.classList.add('correct-word');
+        correctWords++;
+    } else {
+        currentWordSpan.classList.add('incorrect-word');
+        totalErrors++;
+    }
+
+    wordIndex++;
+
+    if (wordIndex < currentWords.length) {
+        // Highlight the next word
+        wordDisplay.childNodes[wordIndex].classList.add('current-word');
+    } else {
+        // End the test
         clearInterval(interval);
         testArea.disabled = true;
         calculateResults();
+    }
+
+    // Clear the input field if not the last word
+    if (wordIndex < currentWords.length) {
+        testArea.value += ' ';
     }
 }
 
@@ -109,10 +142,10 @@ function spellCheck() {
 function calculateResults() {
     // Calculating gross WPM
     let timeSpent = timer[0] * 60 + timer[1]; // in seconds
-    let wpm = Math.round(((characterTyped / 5) / (timeSpent / 60)) || 0);
+    let wpm = Math.round((characterTyped / 5) / (timeSpent / 60)) || 0;
 
     // Calculating accuracy
-    let accuracy = Math.round(((characterTyped - totalErrors) / characterTyped) * 100) || 100;
+    let accuracy = Math.round((correctWords / currentWords.length) * 100) || 100;
 
     // Display results
     wpmElement.innerText = wpm;
@@ -140,14 +173,15 @@ function resetTest() {
     accuracyElement.innerText = '100';
     feedbackElement.innerHTML = '';
     totalErrors = 0;
-    errors = 0;
     characterTyped = 0;
+    currentWords = [];
+    wordIndex = 0;
+    correctWords = 0;
     generateWords();
 }
 
 // Event listeners
-testArea.addEventListener('keydown', startTimer);
-testArea.addEventListener('input', spellCheck);
+testArea.addEventListener('input', processInput);
 resetButton.addEventListener('click', resetTest);
 
 // Initialize the test on page load
