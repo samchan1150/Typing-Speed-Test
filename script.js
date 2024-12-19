@@ -1,58 +1,86 @@
-const TIME_LIMIT = 60; // Time limit in seconds
-let timeLeft = TIME_LIMIT;
-let timer = null;
-let totalErrors = 0;
-let errors = 0;
-let accuracy = 0;
-let characterTyped = 0;
-let currentQuote = "";
-let quoteNo = 0;
-
-// Array of quotes for the test
-const quotesArray = [
-    "The quick brown fox jumps over the lazy dog.",
-    "Practice makes perfect.",
-    "Stay hungry, stay foolish.",
-    "To be or not to be, that is the question.",
-    "All that glitters is not gold."
-];
+// script.js
 
 // Selecting required elements
-const quoteDisplay = document.getElementById('quote-display');
-const quoteInput = document.getElementById('quote-input');
-const timerText = document.getElementById('timer');
-const wpmText = document.getElementById('wpm');
-const accuracyText = document.getElementById('accuracy');
-const restartBtn = document.getElementById('restart-btn');
+const testWrapper = document.getElementById('test-wrapper');
+const testArea = document.getElementById('test-area');
+const wordDisplay = document.getElementById('word-display');
+const resetButton = document.getElementById('reset');
+const timerElement = document.getElementById('timer');
+const wpmElement = document.getElementById('wpm');
+const accuracyElement = document.getElementById('accuracy');
+const feedbackElement = document.getElementById('feedback');
 
-// Function to update the quote
-function updateQuote() {
-    quoteDisplay.textContent = null;
-    currentQuote = quotesArray[quoteNo];
+let timer = [0, 0]; // [minutes, seconds]
+let interval;
+let timerRunning = false;
+let totalErrors = 0;
+let errors = 0;
+let characterTyped = 0;
+let currentWords = [];
+let totalWords = 20; // number of words in the test
 
-    // Separate each character and make a span for styling
-    currentQuote.split('').forEach(char => {
-        const charSpan = document.createElement('span');
-        charSpan.innerText = char;
-        quoteDisplay.appendChild(charSpan);
-    });
+// Function to fetch and display random words from the API
+async function generateWords() {
+    try {
+        wordDisplay.textContent = '';
+        currentWords = [];
 
-    // Reset input area
-    quoteInput.value = null;
+        // Fetch random words from the API
+        const response = await fetch(`https://random-word-api.vercel.app/api?words=${totalWords}`);
+        const data = await response.json();
+
+        currentWords = data;
+
+        // Combine words into a string
+        const wordsString = currentWords.join(' ');
+
+        // Split wordsString into characters and create span elements
+        wordsString.split('').forEach(char => {
+            const charSpan = document.createElement('span');
+            charSpan.innerText = char;
+            wordDisplay.appendChild(charSpan);
+        });
+    } catch (error) {
+        console.error('Error fetching words:', error);
+        wordDisplay.innerText = 'Failed to load words. Please check your internet connection and try again.';
+    }
 }
 
-// Function to process current text
-function processCurrentText() {
-    let typedText = quoteInput.value;
-    characterTyped++;
+// Function to start the timer
+function startTimer() {
+    if (timerRunning === false && testArea.value.length > 0) {
+        timerRunning = true;
+        interval = setInterval(runTimer, 1000);
+    }
+}
+
+// Function to run the timer
+function runTimer() {
+    timer[1]++;
+    if (timer[1] == 60) {
+        timer[0]++;
+        timer[1] = 0;
+    }
+
+    // Update timer display
+    let minutes = (timer[0] < 10) ? '0' + timer[0] : timer[0];
+    let seconds = (timer[1] < 10) ? '0' + timer[1] : timer[1];
+    timerElement.innerText = `${minutes}:${seconds}`;
+}
+
+// Function to spell check the text entered
+function spellCheck() {
+    const textEntered = testArea.value;
+    characterTyped = textEntered.length;
 
     errors = 0;
 
-    let quoteSpanArray = quoteDisplay.querySelectorAll('span');
-    let typedTextArray = typedText.split('');
+    let wordChars = wordDisplay.querySelectorAll('span');
+    let textEnteredArray = textEntered.split('');
 
-    quoteSpanArray.forEach((char, index) => {
-        let typedChar = typedTextArray[index];
+    // Loop through each character and compare
+    wordChars.forEach((char, index) => {
+        let typedChar = textEnteredArray[index];
 
         if (typedChar == null) {
             char.classList.remove('correct', 'incorrect');
@@ -66,78 +94,61 @@ function processCurrentText() {
         }
     });
 
-    // Update errors
+    // Update error count
     totalErrors = errors;
 
-    // Update accuracy
-    let correctCharacters = characterTyped - totalErrors;
-    let accuracyVal = (correctCharacters / characterTyped) * 100;
-    accuracyText.textContent = Math.round(accuracyVal);
-
-    // If current text is completely typed, move to next quote
-    if (typedText.length === currentQuote.length) {
-        updateQuote();
-        quoteNo = (quoteNo + 1) % quotesArray.length;
-        quoteInput.value = '';
+    // If text is complete
+    if (textEntered.length === wordDisplay.textContent.length) {
+        clearInterval(interval);
+        testArea.disabled = true;
+        calculateResults();
     }
 }
 
-// Function to start the timer
-function startTimer() {
-    if (timeLeft > 0) {
-        timeLeft--;
-        timerText.textContent = timeLeft;
+// Function to calculate WPM and accuracy
+function calculateResults() {
+    // Calculating gross WPM
+    let timeSpent = timer[0] * 60 + timer[1]; // in seconds
+    let wpm = Math.round(((characterTyped / 5) / (timeSpent / 60)) || 0);
+
+    // Calculating accuracy
+    let accuracy = Math.round(((characterTyped - totalErrors) / characterTyped) * 100) || 100;
+
+    // Display results
+    wpmElement.innerText = wpm;
+    accuracyElement.innerText = accuracy;
+
+    // Provide feedback
+    feedbackElement.innerHTML = `<p>Your typing speed is <strong>${wpm} WPM</strong> with an accuracy of <strong>${accuracy}%</strong>.</p>`;
+    if (accuracy < 80) {
+        feedbackElement.innerHTML += `<p>Focus on improving your accuracy.</p>`;
     } else {
-        finishTest();
+        feedbackElement.innerHTML += `<p>Great job! Keep practicing to improve your speed further.</p>`;
     }
 }
 
-// Function to finish the test
-function finishTest() {
-    clearInterval(timer);
-    quoteInput.disabled = true;
-    restartBtn.style.display = 'block';
-
-    let wpm = Math.round(((characterTyped / 5) / TIME_LIMIT) * 60);
-    wpmText.textContent = wpm;
+// Function to reset the test
+function resetTest() {
+    clearInterval(interval);
+    timer = [0, 0];
+    timerRunning = false;
+    testArea.disabled = false;
+    testArea.value = '';
+    wordDisplay.textContent = '';
+    timerElement.innerText = '00:00';
+    wpmElement.innerText = '0';
+    accuracyElement.innerText = '100';
+    feedbackElement.innerHTML = '';
+    totalErrors = 0;
+    errors = 0;
+    characterTyped = 0;
+    generateWords();
 }
 
 // Event listeners
-quoteInput.addEventListener('input', () => {
-    if (!timer) {
-        timer = setInterval(startTimer, 1000);
-    }
-    processCurrentText();
-});
+testArea.addEventListener('keydown', startTimer);
+testArea.addEventListener('input', spellCheck);
+resetButton.addEventListener('click', resetTest);
 
-restartBtn.addEventListener('click', () => {
-    resetValues();
-    updateQuote();
-    clearInterval(timer);
-    timer = null;
-    quoteInput.disabled = false;
-    quoteInput.focus();
-    restartBtn.style.display = 'none';
-});
-
-// Function to reset all values
-function resetValues() {
-    timeLeft = TIME_LIMIT;
-    errors = 0;
-    totalErrors = 0;
-    accuracy = 100;
-    characterTyped = 0;
-    quoteNo = 0;
-    timerText.textContent = timeLeft;
-    accuracyText.textContent = accuracy;
-    wpmText.textContent = 0;
-    quoteInput.value = '';
-    quoteDisplay.textContent = '';
-}
-
-// Initialize the test
-window.onload = () => {
-    resetValues();
-    updateQuote();
-    restartBtn.style.display = 'none';
-}
+// Initialize the test on page load
+window.onload = resetTest;

@@ -1,8 +1,17 @@
+/* style.css */
+
 body {
     font-family: Arial, sans-serif;
-    background-color: #f2f2f2;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    width: 90%;
+    max-width: 800px;
+    margin: 50px auto;
     text-align: center;
-    padding: 50px;
 }
 
 h1 {
@@ -12,43 +21,51 @@ h1 {
 #test-wrapper {
     background-color: #fff;
     padding: 20px;
-    margin: auto;
-    width: 60%;
-    box-shadow: 0px 0px 10px #aaa;
+    border: 1px solid #ccc;
 }
 
-#quote-display {
-    font-size: 18px;
-    color: #555;
+#sentence-display {
+    font-size: 1.2em;
     margin-bottom: 20px;
-    border: 1px solid #ddd;
-    padding: 10px;
-    height: 100px;
-    overflow-y: scroll;
     text-align: left;
+    padding: 10px;
+    border: 1px solid #ddd;
+    background-color: #f9f9f9;
 }
 
-#quote-input {
+#sentence-display .correct {
+    color: green;
+}
+
+#sentence-display .incorrect {
+    color: red;
+}
+
+#test-area {
     width: 100%;
-    height: 100px;
-    font-size: 16px;
+    height: 150px;
+    font-size: 1em;
     padding: 10px;
     box-sizing: border-box;
+    border: 1px solid #ddd;
+    margin-bottom: 20px;
 }
 
-#stats {
+.timer, .stats {
     display: flex;
     justify-content: space-around;
-    margin-top: 20px;
+    margin: 20px 0;
+    font-size: 1.2em;
 }
 
-#stats p {
-    font-size: 18px;
-    margin: 0;
-}
-
-#restart-btn {
-    margin-top: 20px;
+#reset {
     padding: 10px 20px;
-    font-size: 16px;
+    font-size: 1em;
+    cursor: pointer;
+}
+
+#feedback {
+    margin-top: 20px;
+    font-size: 1.1em;
+    color: #555;
 }
