@@ -2,7 +2,8 @@
 
 body {
     font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
+    background-color: #121212;
+    color: #e0e0e0;
     margin: 0;
     padding: 0;
 }
@@ -15,13 +16,13 @@ body {
 }
 
 h1 {
-    color: #333;
+    color: #ffffff;
 }
 
 #test-wrapper {
-    background-color: #fff;
+    background-color: #1e1e1e;
     padding: 20px;
-    border: 1px solid #ccc;
+    border: 1px solid #333;
 }
 
 #word-display {
@@ -29,20 +30,21 @@ h1 {
     margin-bottom: 20px;
     text-align: left;
     padding: 10px;
-    border: 1px solid #ddd;
-    background-color: #f9f9f9;
-}
-
-#word-display .correct-word {
-    color: green;
-}
-
-#word-display .incorrect-word {
-    color: red;
+    border: 1px solid #333;
+    background-color: #2c2c2c;
+    word-wrap: break-word;
 }
 
 #word-display .current-word {
-    background-color: lightyellow;
+    background-color: #424242;
+}
+
+#word-display .correct-word {
+    color: #81c784; /* Green shade */
+}
+
+#word-display .incorrect-word {
+    color: #e57373; /* Red shade */
 }
 
 #test-area {
@@ -51,26 +53,42 @@ h1 {
     font-size: 1em;
     padding: 10px;
     box-sizing: border-box;
-    border: 1px solid #ddd;
+    border: 1px solid #333;
+    background-color: #2c2c2c;
+    color: #ffffff;
     margin-bottom: 20px;
+    resize: none;
 }
+
+#test-area::placeholder {
+    color: #bdbdbd;
+}
+
 
 .timer, .stats {
     display: flex;
     justify-content: space-around;
     margin: 20px 0;
     font-size: 1.2em;
+    color: #e0e0e0;
 }
 
 #reset {
     padding: 10px 20px;
     font-size: 1em;
     cursor: pointer;
+    background-color: #424242;
+    color: #ffffff;
+    border: 1px solid #333;
+    transition: background-color 0.3s;
+}
+
+#reset:hover {
+    background-color: #616161;
 }
 
 #feedback {
     margin-top: 20px;
     font-size: 1.1em;
-    color: #555;
+    color: #e0e0e0;
 }
-

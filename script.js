@@ -10,17 +10,16 @@ const wpmElement = document.getElementById('wpm');
 const accuracyElement = document.getElementById('accuracy');
 const feedbackElement = document.getElementById('feedback');
 
-let timer = [0, 0]; // [minutes, seconds]
+let timer = [0, 0, 0]; // [minutes, seconds, hundredths]
 let interval;
 let timerRunning = false;
 let totalErrors = 0;
 let characterTyped = 0;
 let currentWords = [];
-let totalWords = 20; // number of words in the test
-let wordIndex = 0; // index of the current word
+let totalWords = 20; // Number of words in the test
+let wordIndex = 0; // Index of the current word
 let correctWords = 0;
 
-// Function to fetch and display random words from the API
 async function generateWords() {
     try {
         wordDisplay.textContent = '';
@@ -30,7 +29,7 @@ async function generateWords() {
         correctWords = 0;
         totalErrors = 0;
         characterTyped = 0;
-        
+
         // Fetch random words from the API
         const response = await fetch(`https://random-word-api.vercel.app/api?words=${totalWords}`);
         const data = await response.json();
@@ -52,106 +51,67 @@ async function generateWords() {
     }
 }
 
-// Function to start the timer
 function startTimer() {
-    if (timerRunning === false) {
+    if (!timerRunning) {
         timerRunning = true;
-        interval = setInterval(runTimer, 1000);
+        interval = setInterval(runTimer, 100); // Update every 0.1 seconds
     }
 }
 
-// Function to run the timer
 function runTimer() {
-    timer[1]++;
-    if (timer[1] == 60) {
+    timer[2] += 1; // Increment hundredths of a second
+
+    if (timer[2] === 10) {
+        timer[1]++;
+        timer[2] = 0;
+    }
+
+    if (timer[1] === 60) {
         timer[0]++;
         timer[1] = 0;
     }
 
-    // Update timer display
+    // Format the timer values
     let minutes = (timer[0] < 10) ? '0' + timer[0] : timer[0];
     let seconds = (timer[1] < 10) ? '0' + timer[1] : timer[1];
-    timerElement.innerText = `${minutes}:${seconds}`;
+    let hundredths = timer[2];
+
+    // Display the running time
+    timerElement.innerText = `${minutes}:${seconds}.${hundredths}`;
+
+    // Process user input and update stats every tick
+    processInput();
 }
 
-// Function to handle input
-function processInput(event) {
-    // Start the timer on the first keypress
-    startTimer();
+function processInput() {
+    // Update character count excluding spaces
+    characterTyped = testArea.value.replace(/\s+/g, '').length;
 
-    // Total characters typed
-    characterTyped++;
-
-    // Get the current word and user input
-    const input = testArea.value.trim();
-    const inputWords = input.split(' ');
-
-    // Check if the last character is a space or if the user pressed Enter
-    if (event.inputType === 'insertText' && (event.data === ' ' || event.data === null)) {
-        // User pressed space or Enter, check the word
-        checkWord(inputWords[inputWords.length - 1]);
-    } else if (event.inputType === 'deleteContentBackward') {
-        // Handle backspace
-        if (testArea.value.slice(-1) === ' ') {
-            // User deleted a space, move back to previous word
-            if (wordIndex > 0) {
-                wordIndex--;
-                wordDisplay.childNodes[wordIndex].classList.remove('incorrect-word', 'correct-word');
-                wordDisplay.childNodes[wordIndex].classList.add('current-word');
-                wordDisplay.childNodes[wordIndex + 1].classList.remove('current-word');
-            }
-        }
-    }
+    // Update real-time statistics
+    calculateRealtimeStats();
 }
 
-// Function to check the typed word
-function checkWord(typedWord) {
-    const currentWordSpan = wordDisplay.childNodes[wordIndex];
-    const currentWord = currentWords[wordIndex];
 
-    // Remove current-word highlight
-    currentWordSpan.classList.remove('current-word');
+function calculateRealtimeStats() {
+    let timeSpent = (timer[0] * 60) + timer[1] + (timer[2] / 10); // Total time in seconds
+    let timeMinutes = timeSpent / 60;
 
-    if (typedWord === currentWord) {
-        currentWordSpan.classList.add('correct-word');
-        correctWords++;
-    } else {
-        currentWordSpan.classList.add('incorrect-word');
-        totalErrors++;
-    }
-
-    wordIndex++;
-
-    if (wordIndex < currentWords.length) {
-        // Highlight the next word
-        wordDisplay.childNodes[wordIndex].classList.add('current-word');
-    } else {
-        // End the test
-        clearInterval(interval);
-        testArea.disabled = true;
-        calculateResults();
-    }
-
-    // Clear the input field if not the last word
-    if (wordIndex < currentWords.length) {
-        testArea.value += ' ';
-    }
-}
-
-// Function to calculate WPM and accuracy
-function calculateResults() {
-    // Calculating gross WPM
-    let timeSpent = timer[0] * 60 + timer[1]; // in seconds
-    let wpm = Math.round((characterTyped / 5) / (timeSpent / 60)) || 0;
+    // Calculating WPM (only correct words)
+    let netWPM = Math.round((correctWords / timeMinutes) || 0);
 
     // Calculating accuracy
-    let accuracy = Math.round((correctWords / currentWords.length) * 100) || 100;
+    let accuracy = Math.round((correctWords / (wordIndex || 1)) * 100);
 
     // Display results
-    wpmElement.innerText = wpm;
+    wpmElement.innerText = netWPM;
     accuracyElement.innerText = accuracy;
+}
 
+function displayFinalResults() {
     // Provide feedback
+    const wpm = wpmElement.innerText;
+    const accuracy = accuracyElement.innerText;
+
     feedbackElement.innerHTML = `<p>Your typing speed is <strong>${wpm} WPM</strong> with an accuracy of <strong>${accuracy}%</strong>.</p>`;
     if (accuracy < 80) {
         feedbackElement.innerHTML += `<p>Focus on improving your accuracy.</p>`;
@@ -160,29 +120,106 @@ function calculateResults() {
     }
 }
 
-// Function to reset the test
 function resetTest() {
     clearInterval(interval);
-    timer = [0, 0];
+    interval = null;
+    timer = [0, 0, 0];
     timerRunning = false;
-    testArea.disabled = false;
-    testArea.value = '';
-    wordDisplay.textContent = '';
-    timerElement.innerText = '00:00';
-    wpmElement.innerText = '0';
-    accuracyElement.innerText = '100';
-    feedbackElement.innerHTML = '';
     totalErrors = 0;
     characterTyped = 0;
-    currentWords = [];
-    wordIndex = 0;
     correctWords = 0;
+    wordIndex = 0; // Initialize wordIndex
+
+    testArea.disabled = false;
+    testArea.value = '';
+    timerElement.innerText = '00:00.0';
+    wpmElement.innerText = '0';
+    accuracyElement.innerText = '100%';
+    feedbackElement.innerText = '';
+
+    // Remove old word spans
+    while (wordDisplay.firstChild) {
+        wordDisplay.removeChild(wordDisplay.firstChild);
+    }
+
+    // Generate new words
     generateWords();
+}
+
+function handleSpace(event) {
+    if (event.key === ' ') {
+
+        // Start the timer on the first input
+        if (!timerRunning) startTimer();
+
+        // Get the current input up to this point
+        const input = testArea.value.trim();
+
+        // Split the input into words
+        const inputWords = input.split(' ');
+
+        // Get the last typed word
+        const typedWord = inputWords[inputWords.length - 1];
+
+        // Process the typed word
+        processCurrentWord(typedWord);
+
+        // Clear the input field for the next word if desired
+        // Alternatively, keep the current input and let the user continue typing
+    }
+}
+
+function processCurrentWord(typedWord) {
+    const currentWordSpan = wordDisplay.childNodes[wordIndex];
+    const currentWord = currentWords[wordIndex];
+
+    if (currentWordSpan) {
+        // Remove existing classes
+        currentWordSpan.classList.remove('correct-word', 'incorrect-word', 'current-word');
+
+        if (typedWord === currentWord) {
+            currentWordSpan.classList.add('correct-word');
+            correctWords++;
+        } else {
+            currentWordSpan.classList.add('incorrect-word');
+            totalErrors++;
+        }
+    }
+
+    // Move to the next word
+    wordIndex++;
+
+    // Highlight the new current word
+    updateCurrentWordHighlight();
+
+    // Check if test is complete
+    if (wordIndex === currentWords.length) {
+        // Stop the timer and disable input
+        clearInterval(interval);
+        testArea.disabled = true;
+        displayFinalResults();
+    }
+
+    // Update real-time statistics
+    calculateRealtimeStats();
+}
+
+function updateCurrentWordHighlight() {
+    // Remove 'current-word' class from all words
+    wordDisplay.childNodes.forEach(wordSpan => {
+        wordSpan.classList.remove('current-word');
+    });
+
+    // Add 'current-word' class to the next word
+    if (wordDisplay.childNodes[wordIndex]) {
+        wordDisplay.childNodes[wordIndex].classList.add('current-word');
+    }
 }
 
 // Event listeners
 testArea.addEventListener('input', processInput);
 resetButton.addEventListener('click', resetTest);
+testArea.addEventListener('keydown', handleSpace);
 
 // Initialize the test on page load
 window.onload = resetTest;
