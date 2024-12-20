@@ -9,6 +9,21 @@
     <div class="container">
         <h1>Typing Speed Test</h1>
         <div id="test-wrapper">
+            <!-- Settings Section -->
+            <div class="settings">
+                <label for="custom-word-count">Custom Word Count:</label>
+                <input type="number" id="custom-word-count" min="1" max="1000" placeholder="Enter number(1-1000)" />
+                <div id="custom-word-count-error" class="error-message"></div>
+                <br /><br />
+                <label for="word-count">Or Select Number of Words:</label>
+                <select id="word-count">
+                    <option value="10">10 Words</option>
+                    <option value="20" selected>20 Words</option>
+                    <option value="30">30 Words</option>
+                    <option value="50">50 Words</option>
+                    <option value="100">100 Words</option>
+                </select>
+            </div>
             <div id="word-display"></div>
             <textarea id="test-area" placeholder="Start typing here..."></textarea>
             <div class="timer">Time: <span id="timer">00:00</span></div>
